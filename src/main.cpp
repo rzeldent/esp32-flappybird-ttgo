@@ -1,15 +1,13 @@
 // By Ponticelli Domenico.
 
-// TTGO: 240x135
-
 #include <WiFi.h>
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <EEPROM.h>
 
-#define BUTTON_LEFT 0
 #define BUTTON_RIGHT 35
 
+// TTGO: 240x135
 #define TFTW 240         // screen width
 #define TFTH 135         // screen height
 #define TFTW2 (TFTW / 2) // half screen width
@@ -38,23 +36,23 @@
 #define COLOR565(r, g, b) ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
 
 auto tft = TFT_eSPI(); // Invoke custom library
-int maxScore = 0;
+uint maxScore = 0;
 
 // background
-const unsigned int BCKGRDCOL = COLOR565(138, 235, 244);
+#define BCKGRDCOL COLOR565(138, 235, 244)
 // bird
-const unsigned int BIRDCOL = COLOR565(255, 254, 174);
+#define BIRDCOL COLOR565(255, 254, 174)
 // pipe
-const unsigned int PIPECOL = COLOR565(99, 255, 78);
+#define PIPECOL COLOR565(99, 255, 78)
 // pipe highlight
-const unsigned int PIPEHIGHCOL = COLOR565(250, 255, 250);
+#define PIPEHIGHCOL COLOR565(250, 255, 250)
 // pipe seam
-const unsigned int PIPESEAMCOL = COLOR565(0, 0, 0);
+#define PIPESEAMCOL COLOR565(0, 0, 0)
 // floor
-const unsigned int FLOORCOL = COLOR565(246, 240, 163);
+#define FLOORCOL COLOR565(246, 240, 163)
 // grass (col2 is the stripe color)
-const unsigned int GRASSCOL = COLOR565(141, 225, 87);
-const unsigned int GRASSCOL2 = COLOR565(156, 239, 88);
+#define GRASSCOL COLOR565(141, 225, 87)
+#define GRASSCOL2 COLOR565(156, 239, 88)
 
 // bird sprite
 // bird sprite colors (Cx name for values to keep the array readable)
@@ -65,15 +63,15 @@ const unsigned int GRASSCOL2 = COLOR565(156, 239, 88);
 #define C4 TFT_RED
 #define C5 COLOR565(251, 216, 114)
 
-static const unsigned int birdcol[] =
-    {C0, C0, C1, C1, C1, C1, C1, C0, C0, C0, C1, C1, C1, C1, C1, C0,
-     C0, C1, C2, C2, C2, C1, C3, C1, C0, C1, C2, C2, C2, C1, C3, C1,
-     C0, C2, C2, C2, C2, C1, C3, C1, C0, C2, C2, C2, C2, C1, C3, C1,
-     C1, C1, C1, C2, C2, C3, C1, C1, C1, C1, C1, C2, C2, C3, C1, C1,
-     C1, C2, C2, C2, C2, C2, C4, C4, C1, C2, C2, C2, C2, C2, C4, C4,
-     C1, C2, C2, C2, C1, C5, C4, C0, C1, C2, C2, C2, C1, C5, C4, C0,
-     C0, C1, C2, C1, C5, C5, C5, C0, C0, C1, C2, C1, C5, C5, C5, C0,
-     C0, C0, C1, C5, C5, C5, C0, C0, C0, C0, C1, C5, C5, C5, C0, C0};
+static const unsigned int birdcol[] = {
+    C0, C0, C1, C1, C1, C1, C1, C0, C0, C0, C1, C1, C1, C1, C1, C0,
+    C0, C1, C2, C2, C2, C1, C3, C1, C0, C1, C2, C2, C2, C1, C3, C1,
+    C0, C2, C2, C2, C2, C1, C3, C1, C0, C2, C2, C2, C2, C1, C3, C1,
+    C1, C1, C1, C2, C2, C3, C1, C1, C1, C1, C1, C2, C2, C3, C1, C1,
+    C1, C2, C2, C2, C2, C2, C4, C4, C1, C2, C2, C2, C2, C2, C4, C4,
+    C1, C2, C2, C2, C1, C5, C4, C0, C1, C2, C2, C2, C1, C5, C4, C0,
+    C0, C1, C2, C1, C5, C5, C5, C0, C0, C1, C2, C1, C5, C5, C5, C0,
+    C0, C0, C1, C5, C5, C5, C0, C0, C0, C0, C1, C5, C5, C5, C0, C0};
 
 // bird structure
 static struct BIRD
@@ -99,45 +97,25 @@ static short tmpx, tmpy;
 // draw pixel
 // ---------------
 // faster drawPixel method by inlining calls and using setAddrWindow and pushColor using macro to force inlining
-#define drawPixel(a, b, c)       tft.setAddrWindow(a, b, a, b); tft.pushColor(c)
-
-void EEPROM_Write(int *num, int MemPos)
-{
-  byte ByteArray[2];
-  memcpy(ByteArray, num, 2);
-  for (int x = 0; x < 2; x++)
-    EEPROM.write((MemPos * 2) + x, ByteArray[x]);
-}
-
-void EEPROM_Read(int *num, int MemPos)
-{
-  byte ByteArray[2];
-  for (int x = 0; x < 2; x++)
-    ByteArray[x] = EEPROM.read((MemPos * 2) + x);
-
-  memcpy(num, ByteArray, 2);
-}
-
-void resetMaxScore()
-{
-  EEPROM_Write(&maxScore, 0);
-}
+#define drawPixel(a, b, c)       \
+  tft.setAddrWindow(a, b, a, b); \
+  tft.pushColor(c)
 
 void setup()
 {
   // put your setup code here, to run once:
   // Turn off WiFi and Bluetooth to save power
   WiFi.mode(WIFI_OFF);
-  btStop();
+  //  btStop();
 
-  pinMode(BUTTON_LEFT, INPUT);
   pinMode(BUTTON_RIGHT, INPUT);
 
   tft.init();
   tft.setRotation(1);
   tft.setSwapBytes(true);
 
-  resetMaxScore();
+  // reset max score
+  EEPROM.writeUInt(0, 0);
 }
 
 void game_init()
@@ -173,8 +151,8 @@ void game_start()
   tft.println("-BIRD-");
 
   // wait for push button
-  while (digitalRead(BUTTON_LEFT) == HIGH)
-    sleep(1);
+  while (digitalRead(BUTTON_RIGHT) == HIGH)
+    yield();
 
   // init game settings
   game_init();
@@ -210,13 +188,15 @@ void game_loop()
 
   while (true)
   {
+    yield();
+
     int loops = 0;
     while (millis() > next_game_tick && loops < MAX_FRAMESKIP)
     {
       // ===============
       // input
       // ===============
-      if (digitalRead(BUTTON_LEFT)  == HIGH)
+      if (digitalRead(BUTTON_RIGHT) == LOW)
       {
         // if the bird is not too close to the top of the screen apply jump force
         if (bird.y > BIRDH2 * 0.5)
@@ -363,11 +343,11 @@ void game_loop()
 void game_over()
 {
   tft.fillScreen(TFT_BLACK);
-  EEPROM_Read(&maxScore, 0);
+  maxScore = EEPROM.readUInt(0);
 
   if (score > maxScore)
   {
-    EEPROM_Write(&score, 0);
+    EEPROM.writeUInt(0, score);
     maxScore = score;
     tft.setTextColor(TFT_RED);
     tft.setTextSize(2);
@@ -391,8 +371,8 @@ void game_over()
   tft.print(maxScore);
 
   // wait for push button
-  while (digitalRead(BUTTON_LEFT) == HIGH)
-    sleep(1);
+  while (digitalRead(BUTTON_RIGHT) == HIGH)
+    yield();
 }
 
 void loop()
