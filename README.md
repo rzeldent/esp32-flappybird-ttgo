@@ -4,4 +4,4 @@ All the credits go to [Ponticelli Domenico for the initial M5 stack game](https:
 
 Made this repository to adapt it for the TTGO and easy upload the game using PlatformIO. 
 
-![Game image](https://github.com/rzeldent/esp32-flappybird-TTGO/blob/main/flappy_game.png)
+![Game image](https://github.com/rzeldent/esp32-flappybird-TTGO/blob/main/flappy_game.jpg)
